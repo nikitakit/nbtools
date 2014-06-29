@@ -5,63 +5,55 @@
 // * refactor getting gamepads into a function
 
 require(["widgets/js/widget"], function(WidgetManager) {
-  function reportGamepadEnabled() {
-    var gamepadSupportAvailable = navigator.getGamepads ||
-      !!navigator.webkitGetGamepads ||
-      !!navigator.webkitGamepads;
-
-    var stat= document.getElementById("gpenabled")
-    if (gamepadSupportAvailable) {
-      stat.innerHTML = "yes"
-      stat.style.color="green"
-    } else {
-      var stat= document.getElementById("gpenabled")
-      stat.innerHTML = "no"
-      stat.style.color="red"
-    }
-  }
 
   function pollGamepads() {
     var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads() : []);
     for (var i = 0; i < gamepads.length; i++) {
       var gp = gamepads[i];
       if(gp) {
-		registerGamepad(i);
+        registerGamepad(i);
         clearInterval(interval);
-		setInterval(pollButtons, 50);
+        setInterval(pollButtons, 50);
       }
     }
   }
 
   var gamepad;
   function registerGamepad(i) {
-	gamepad = i;
+    gamepad = i;
   }
 
   var button_cache = {};
   function pollButtons() {
     var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads() : []);
-	var pad = gamepads[gamepad];
-	var i;
+    var pad = gamepads[gamepad];
+    var i;
     for (i = 0; i < pad.buttons.length; ++i) {
-	  var value = pad.buttons[i];
+      var value = pad.buttons[i];
 
-	  if (button_cache[i] !== value) {
-		notifyButton(i, value);
-	  }
-	  button_cache[i] = value;
+      if (button_cache[i] !== value) {
+        notifyButton(i, value);
+      }
+      button_cache[i] = value;
     }
   }
 
+
+
   var notifiers = {};
   function notifyButton(i, value) {
-	if (notifiers[i] !== undefined) {
-	  notifiers[i](value);
-	}
+    if (notifiers[i] !== undefined) {
+      for (var j in notifiers[i]) {
+        notifiers[i][j](value);
+      }
+    }
   }
 
   function onButton(i, callback) {
-	notifiers[i] = callback;
+    if (notifiers[i] == undefined) {
+      notifiers[i] = []
+    }
+    notifiers[i].push(callback);
   };
 
   // Assume gamepad events are not available. Use polling
@@ -89,8 +81,10 @@ require(["widgets/js/widget"], function(WidgetManager) {
         .appendTo(this.$el);
 
       // Register an event handler with the joystick - TODO
-      onButton(0, $.proxy(this.handle_value, this));
+      onButton(this.model.get('button_id'), $.proxy(this.handle_value, this));
+      //onButton(1, $.proxy(this.handle_value, this));
       //register_handler($.proxy(this.handle_value, this));
+      //console.log(this.model.get('button_id'));
 
       this.$el_to_style = this.$checkbox; // Set default element to style
       this.update(); // Set defaults.
